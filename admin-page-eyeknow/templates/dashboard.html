@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Page</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+
+<!-- Action Buttons -->
+<div class="header">
+  <div class="toolbar">
+    <div class="left-buttons">
+      <div class="btn add-btn" id="addObjectBtn">
+        <i class="fa-solid fa-plus white-icon"></i> 
+        Add Object
+      </div>
+      <div class="btn edit-btn" id="editObjectBtn" disabled style="display: none;">
+        <i class="fa-solid fa-pen-to-square"></i>
+        Edit Object
+      </div>
+    </div>
+
+    <div class="right-buttons">
+      <p>Search:</p>
+      <div class="search-container">
+        <input type="text" placeholder="Search..." />
+      </div>
+      <div class="btn sort-btn">
+        <i class="fa-solid fa-sort"></i>
+        Sort
+      </div>
+      <div class="btn download-btn">
+        <i class="fa-solid fa-download"></i>
+        Download
+      </div>
+      <div class="btn logout-btn" id="logoutTrigger">
+        <i class="fa-solid fa-right-from-bracket"></i>
+        Logout
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Folder Info -->
+<div class="folder-info">
+  <div class="info-block-left">Project Name: <strong>{{ folder_name }}</strong></div>
+  <div class="info-block-center">Last Updated: <strong>{{ last_updated }}</strong></div>
+  <div class="info-block-right"><em>Created:</em> <strong>{{ date_created }}</strong></div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- Add Object Modal -->
+<div class="bgPop" id="add">
+  <div class="add-box">
+    <h1><span class="add">Add</span> <span class="object">Object</span></h1>
+    <form id="uploadForm" class="add-form">
+      <label for="batchName">Object Name:</label>
+      <input type="text" id="batchName" name="batchName" placeholder="Enter object name" required>
+
+      <!-- Drop Area -->
+      <div id="dropArea">
+        <div class="drop-header">
+          <span class="browse-btn">Browse...</span>
+          <span class="or-text">Or drop files/folder here</span>
+        </div>
+        <ul id="fileList"></ul>
+        <input type="file" id="fileInput" name="files" multiple accept="image/*"/>
+      </div>
+
+      <div class="error-message" id="errorMessage"></div>
+      <div class="success-message" id="successMessage"></div>
+
+      <!-- Buttons -->
+      <div class="add-actions">
+        <button type="button" id="cancelBtn" class="cancel-btn">Cancel</button>
+        <button type="submit" class="upload-btn">Upload</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+<!-- FOR TESTING DATA TABLE -->
+<div class="data-table">
+  <table>
+   <thead>
+      <tr>
+        <th>No.</th>
+        <th>Object Name</th>
+        <th>Date Uploaded</th>
+        <th>Date Updated</th>
+        <th>Created By</th>
+        <th>Size</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>ChairModel.glb</td>
+        <td>06/01/2025 02:30 PM</td>
+        <td> </td>
+        <td>Admin 1</td>
+        <td>3.4 MB</td>
+      </tr>
+    </tbody>
+    <tbody>
+      <tr>
+        <td>2</td>
+        <td>Test2.glb</td>
+        <td>05/05/21 02:11 AM</td>
+        <td> </td>
+        <td>Admin 1</td>
+        <td>10 MB</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Logout Confirmation add -->
+<div class="bgPop" id="logoutadd">
+  <div class="logout-box">
+    <h2 style="margin-bottom: 1rem; font-size: 15px;">Are you sure you want to log out?</h2>
+    <div class="logout-action">
+      <button class="cancel-btn" id="cancelLogout">Cancel</button>
+      <form method="GET" action="{{ url_for('logout') }}">
+        <button type="submit" class="upload-btn">Confirm</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Row Info add -->
+<div class="bgPop" id="rowInfoadd" style="display: none; color: white;">
+  <div class="folder-box">
+  <h2><span class="object">Object</span> <span class="details">Details</span></h2>
+
+  <!-- Object Name Line -->
+  <p><strong>Object Name:</strong> <span id="addObjectName"></span></p>
+
+  <!-- Table with File Details -->
+   <div class="table-container">
+  <table class="data-table" style="width: 100%; padding: 1rem 2rem;">
+    <thead>
+      <tr>
+        <th>No.</th>
+        <th>File Name</th>
+        <th>Date Created</th>
+        <th>Created By</th>
+        <th class="size-column">Size</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td><span id="addObjectClass"></span></td>
+        <td><span id="addDateUploaded"></span></td>
+        <td></td>
+        <td class="size-column"><span id="addObjectSize"></span></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+    <div class="add-actions" style="margin-top: 15px;">
+      <button type="button" id="closeaddBtn" class="cancel-btn" onclick="closeRowadd()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Object add -->
+<div class="bgPop" id="editObjectadd" style="display: none;">
+  <div class="add-box">
+    <h1><span class="add">Edit</span> <span class="object">Object</span></h1>
+    <form id="editObjectForm" class="add-form">
+
+      <label for="editObjectName">Object Name:</label>
+      <input type="text" id="editObjectName" name="editObjectName" required readonly>
+
+      <!-- Drop Area (like Add add, but you can remove or keep as needed) -->
+      <div id="dropArea">
+        <div class="drop-header">
+          <span class="browse-btn">Browse...</span>
+          <span class="or-text">Or drop files here</span>
+        </div>
+
+        <ul id="fileList">
+          <li>
+            <div class="file-info">
+              <div class="file-name-row">
+                <span class="file-name">Screenshot190.png</span>
+                <button class="remove-btn">&times;</button>
+              </div>
+              <span class="file-size">2.00 MB</span>
+            </div>
+          </li>
+
+          <li>
+            <div class="file-info">
+              <div class="file-name-row">
+                <span class="file-name">Screenshot191.png</span>
+                <button class="remove-btn">&times;</button>
+              </div>
+              <span class="file-size">2.13 MB</span>
+            </div>
+          </li>
+
+          <li>
+            <div class="file-info">
+              <div class="file-name-row">
+                <span class="file-name">DesignMockup.png</span>
+                <button class="remove-btn">&times;</button>
+              </div>
+              <span class="file-size">1.75 MB</span>
+            </div>
+          </li>
+
+          <li>
+            <div class="file-info">
+              <div class="file-name-row">
+                <span class="file-name">Document_Final.pdf</span>
+                <button class="remove-btn">&times;</button>
+              </div>
+              <span class="file-size">980 KB</span>
+            </div>
+          </li>
+        </ul>
+
+        <input type="file" id="fileInput" name="files" multiple accept="image/*" webkitdirectory mozdirectory>
+      </div>
+
+
+      <div class="add-actions">
+        <button type="button" class="cancel-btn" id="cancelEditBtn">Cancel</button>
+        <button type="submit" class="upload-btn">Confirm</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+<div id="successAdd" class="success-overlay" onclick="closeSuccessPopup(event)">
+  <div class="success-content">
+    <button class="close-btn" onclick="closeSuccessPopup()">&times;</button>
+    <i class="fa-solid fa-check"></i>
+    <h3 class="success-title">Upload Successful!</h3>
+    <p id="successMessage" class="success-message"></p>
+    <button class="ok-btn" onclick="closeSuccessPopup()">OK</button>
+  </div>
+</div>
+
+<script>
+/// DOM elements
+const add = document.getElementById("add");
+const dropArea = document.getElementById("dropArea");
+const batchNameInput = document.getElementById("batchName");
+const cancelBtn = document.getElementById("cancelBtn");
+const fileList = document.getElementById("fileList");
+const fileInput = document.getElementById("fileInput");
+const uploadForm = document.getElementById("uploadForm");
+const errorMessage = document.getElementById("errorMessage");
+const successMessage = document.getElementById("successMessage");
+
+const editBtn = document.getElementById("editObjectBtn");
+const rows = document.querySelectorAll('.data-table tbody tr');
+const editObjectModal = document.getElementById("editObjectModal");
+const editForm = document.getElementById("editObjectForm");
+const cancelEditBtn = document.getElementById("cancelEditBtn");
+
+// Initial states
+if (editBtn) {
+  editBtn.style.display = 'flex';
+  editBtn.disabled = true;
+}
+
+// Global variable for dropped files
+let droppedFiles = [];
+
+// Utility functions for UI feedback
+function showError(message) {
+  if (errorMessage) {
+    errorMessage.textContent = message;
+    errorMessage.style.display = 'block';
+  }
+  if (successMessage) {
+    successMessage.style.display = 'none';
+  }
+}
+
+function showSuccess(message) {
+  if (successMessage) {
+    successMessage.textContent = message;
+    successMessage.style.display = 'block';
+  }
+  if (errorMessage) {
+    errorMessage.style.display = 'none';
+  }
+}
+
+function hideMessages() {
+  if (errorMessage) errorMessage.style.display = 'none';
+  if (successMessage) successMessage.style.display = 'none';
+}
+
+// Show loading state
+function setUploadState(isUploading) {
+  const uploadBtn = document.querySelector('.upload-btn');
+  const cancelBtn = document.getElementById('cancelBtn');
+  
+  if (uploadBtn) {
+    uploadBtn.disabled = isUploading;
+    uploadBtn.textContent = isUploading ? 'Uploading...' : 'Upload';
+  }
+  if (cancelBtn) {
+    cancelBtn.disabled = isUploading;
+  }
+}
+
+// Drag & Drop functionality
+if (dropArea) {
+  dropArea.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    dropArea.style.borderColor = "#fd1717";
+  });
+
+  dropArea.addEventListener("dragleave", () => {
+    dropArea.style.borderColor = "#ccc";
+  });
+
+  dropArea.addEventListener("drop", async (e) => {
+    e.preventDefault();
+    dropArea.style.borderColor = "#ccc";
+
+    const items = e.dataTransfer.items;
+    
+    // Check if it's a folder drop and set batch name only if empty
+    if (items.length > 0 && (!batchNameInput.value || batchNameInput.value.trim() === '')) {
+      const entry = items[0].webkitGetAsEntry();
+      if (entry && entry.isDirectory) {
+        const folderName = entry.name;
+        if (batchNameInput) batchNameInput.value = folderName;
+      }
+    }
+
+    // Process all dropped items (ADD to existing files, don't replace)
+    for (const item of items) {
+      const entry = item.webkitGetAsEntry();
+      if (entry) await traverseFileTree(entry);
+    }
+
+    // Filter and render image files
+    renderFileList();
+  });
+
+  // Click to browse functionality - but only on the browse button area
+  const browseBtn = dropArea.querySelector('.browse-btn');
+  if (browseBtn) {
+    browseBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (fileInput) fileInput.click();
+    });
+  }
+  
+  // If there's no specific browse button, make the drop header clickable
+  const dropHeader = dropArea.querySelector('.drop-header');
+  if (dropHeader && !browseBtn) {
+    dropHeader.addEventListener("click", (e) => {
+      if (e.target === dropHeader || e.target.classList.contains('browse-btn') || e.target.classList.contains('or-text')) {
+        if (fileInput) fileInput.click();
+      }
+    });
+  }
+}
+
+// File input change handler
+if (fileInput) {
+  fileInput.addEventListener("change", () => {
+    const files = Array.from(fileInput.files);
+    
+    // Add files to existing array (don't replace)
+    for (const file of files) {
+      if (file.type.startsWith("image/")) {
+        // Check if file already exists to avoid duplicates
+        const exists = droppedFiles.some(existingFile => 
+          existingFile.name === file.name && existingFile.size === file.size
+        );
+        if (!exists) {
+          droppedFiles.push(file);
+        }
+      }
+    }
+
+    // Auto-fill folder name if files have webkitRelativePath and batch name is empty
+    if (files.length > 0 && files[0].webkitRelativePath && (!batchNameInput.value || batchNameInput.value.trim() === '')) {
+      const folderName = files[0].webkitRelativePath.split("/")[0];
+      if (batchNameInput) batchNameInput.value = folderName;
+    }
+
+    renderFileList();
+    
+    // Reset file input to allow selecting the same files again if needed
+    fileInput.value = '';
+  });
+}
+
+// Traverse file tree for folder drops
+async function traverseFileTree(entry) {
+  if (entry.isFile) {
+    return new Promise(resolve => {
+      entry.file(file => {
+        // Only add image files and check for duplicates
+        if (file.type.startsWith("image/")) {
+          const exists = droppedFiles.some(existingFile => 
+            existingFile.name === file.name && existingFile.size === file.size
+          );
+          if (!exists) {
+            droppedFiles.push(file);
+          }
+        }
+        resolve();
+      });
+    });
+  } else if (entry.isDirectory) {
+    const reader = entry.createReader();
+    return new Promise(resolve => {
+      reader.readEntries(async entries => {
+        for (const subEntry of entries) {
+          await traverseFileTree(subEntry);
+        }
+        resolve();
+      });
+    });
+  }
+}
+
+// Render file list with remove buttons
+function renderFileList() {
+  if (!fileList) return;
+  
+  fileList.innerHTML = '';
+  
+  droppedFiles.forEach((file, index) => {
+    const li = document.createElement('li');
+    li.innerHTML = `
+      <div class="file-info">
+        <div class="file-name-row">
+          <span class="file-name">${file.name}</span>
+          <button type="button" class="remove-btn" onclick="removeFile(${index})">&times;</button>
+        </div>
+        <span class="file-size">${formatFileSize(file.size)}</span>
+      </div>
+    `;
+    fileList.appendChild(li);
+  });
+}
+
+// Remove file function
+function removeFile(index) {
+  event.stopPropagation();
+  droppedFiles.splice(index, 1);
+  renderFileList();
+}
+
+// Format file size helper function
+function formatFileSize(bytes) {
+  if (bytes === 0) return '0 Bytes';
+  
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function showSuccessPopup(message) {
+    const modal = document.getElementById('successAdd');
+    const messageElement = document.getElementById('successMessage');
+    
+    // Check if modal elements exist
+    if (!modal || !messageElement) {
+        console.error('Success modal elements not found');
+        return;
+    }
+    
+    // Format the message with styling
+    const formattedMessage = formatSuccessMessage(message);
+    messageElement.innerHTML = formattedMessage;
+    
+    // Show modal with animation
+    modal.classList.add('show');
+    
+    // Prevent body scroll
+    document.body.style.overflow = 'hidden';
+}
+
+function closeSuccessPopup(event) {
+    // Don't close if clicking inside the modal content
+    if (event && event.target.closest('.success-content') && event.target !== event.currentTarget) {
+        return;
+    }
+    
+    const modal = document.getElementById('successAdd');
+    if (modal) {
+        modal.classList.remove('show');
+        
+        // Restore body scroll
+        document.body.style.overflow = 'auto';
+    }
+}
+
+function formatSuccessMessage(message) {
+    // Extract file count and object name for styling
+    const fileCountMatch = message.match(/(\d+)\s+files?/);
+    const objectNameMatch = message.match(/"([^"]+)"/);
+    
+    let formattedMessage = message;
+    
+    if (fileCountMatch) {
+        const fileCount = fileCountMatch[1];
+        const fileText = parseInt(fileCount) === 1 ? 'file' : 'files';
+        formattedMessage = formattedMessage.replace(
+            fileCountMatch[0], 
+            `<span class="file-count">${fileCount} ${fileText}</span>`
+        );
+    }
+    
+    if (objectNameMatch) {
+        const objectName = objectNameMatch[1];
+        formattedMessage = formattedMessage.replace(
+            objectNameMatch[0], 
+            `"<span class="object-name">${objectName}</span>"`
+        );
+    }
+    
+    return formattedMessage;
+}
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeSuccessPopup();
+    }
+});
+
+// Handle form submission with database storage
+if (uploadForm) {
+  uploadForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    
+    // Validate form
+    const objectName = batchNameInput ? batchNameInput.value.trim() : '';
+    if (!objectName) {
+      showError('Please enter an object name.');
+      return;
+    }
+    
+    if (droppedFiles.length === 0) {
+      showError('Please select at least one file to upload.');
+      return;
+    }
+    
+    // Hide previous messages and show loading state
+    hideMessages();
+    setUploadState(true);
+    
+    try {
+      // Create FormData object
+      const formData = new FormData();
+      formData.append('batchName', objectName);
+      
+      // Add created_by if you have user session data
+      // formData.append('created_by', getCurrentUserId()); // Implement this function
+      
+      // Add all files
+      droppedFiles.forEach((file, index) => {
+        formData.append('files', file);
+      });
+      
+      // Send to backend
+      const response = await fetch('/upload', {
+        method: 'POST',
+        body: formData
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        // Step 1: Close the add object form immediately
+        if (add) add.style.display = "none";
+        
+        // Step 2: Clean up form data
+        if (batchNameInput) batchNameInput.value = '';
+        droppedFiles = [];
+        renderFileList();
+        hideMessages();
+        
+        // Step 3: Wait a moment for smooth transition, then show success popup
+        setTimeout(() => {
+          showSuccessPopup(`Successfully uploaded ${result.files.length} files to "${result.object_name}"`);
+
+          setTimeout(() => {
+            closeSuccessPopup();
+          }, 3000);
+        }, 300);
+
+        
+      } else {
+        showError(result.error || 'Upload failed');
+      }
+      
+    } catch (error) {
+      console.error('Upload error:', error);
+      showError('Network error. Please check your connection and try again.');
+    } finally {
+      setUploadState(false);
+    }
+  });
+}
+
+
+// Function to refresh data table (optional - implement based on your current table structure)
+function refreshDataTable() {
+  // You can implement this to reload the table data from the server
+  // For example:
+  // fetch('/objects')
+  //   .then(response => response.json())
+  //   .then(data => {
+  //     // Update your table with new data
+  //   });
+}
+
+// Modal open/close functionality
+if (cancelBtn && add) {
+  // Open add object modal
+  const addObjectBtn = document.getElementById("addObjectBtn");
+  if (addObjectBtn) {
+    addObjectBtn.addEventListener("click", () => {
+      add.style.display = "flex";
+      hideMessages();
+    });
+  }
+
+  // Close add object modal
+  cancelBtn.addEventListener("click", () => {
+    add.style.display = "none";
+    // Clear form when closing
+    if (batchNameInput) batchNameInput.value = '';
+    droppedFiles = [];
+    renderFileList();
+    hideMessages();
+  });
+}
+
+// Logout modal functionality
+const logoutTrigger = document.getElementById("logoutTrigger");
+const logoutModal = document.getElementById("logoutadd"); // <- corrected
+const cancelLogout = document.getElementById("cancelLogout");
+
+if (logoutTrigger && logoutModal && cancelLogout) {
+  logoutTrigger.addEventListener("click", () => {
+    logoutModal.style.display = "flex";
+  });
+
+  cancelLogout.addEventListener("click", () => {
+    logoutModal.style.display = "none";
+  });
+}
+
+
+// Row info modal close button
+const closeModalBtn = document.getElementById('closeModalBtn');
+if (closeModalBtn) {
+  closeModalBtn.addEventListener('click', () => {
+    const rowInfoModal = document.getElementById('rowInfoModal');
+    if (rowInfoModal) rowInfoModal.style.display = 'none';
+    
+    if (rows) {
+      rows.forEach(r => r.classList.remove('selected'));
+    }
+    if (editBtn) {
+      editBtn.disabled = true;
+      editBtn.style.backgroundColor = '';
+      editBtn.style.borderColor = '';
+    }
+  });
+}
+
+// Row click and double-click logic for selection & modal opening
+let clickTimer = null;
+
+if (rows) {
+  rows.forEach(row => {
+    row.addEventListener('click', () => {
+      clearTimeout(clickTimer);
+      clickTimer = setTimeout(() => {
+        // Remove existing selection
+        rows.forEach(r => r.classList.remove('selected'));
+        
+        // Highlight clicked row
+        row.classList.add('selected');
+        
+        // Enable Edit button and style it
+        if (editBtn) {
+          editBtn.disabled = false;
+          editBtn.style.backgroundColor = '#747272';
+          editBtn.style.borderColor = '#747272';
+        }
+      }, 250);
+    });
+
+    row.addEventListener('dblclick', () => {
+      clearTimeout(clickTimer);
+      // Show row info modal with row data
+      const cells = row.querySelectorAll('td');
+      const modalObjectName = document.getElementById('modalObjectName');
+      const modalDateUploaded = document.getElementById('modalDateUploaded');
+      const modalObjectClass = document.getElementById('modalObjectClass');
+      const modalObjectSize = document.getElementById('modalObjectSize');
+      const rowInfoModal = document.getElementById('rowInfoModal');
+      
+      if (modalObjectName && cells[1]) modalObjectName.innerText = cells[1].innerText;
+      if (modalDateUploaded && cells[2]) modalDateUploaded.innerText = cells[2].innerText;
+      if (modalObjectClass && cells[3]) modalObjectClass.innerText = cells[3].innerText;
+      if (modalObjectSize && cells[4]) modalObjectSize.innerText = cells[4].innerText;
+      if (rowInfoModal) rowInfoModal.style.display = 'flex';
+    });
+  });
+}
+
+// Edit button click - open Edit modal with selected row data
+if (editBtn) {
+  editBtn.addEventListener("click", () => {
+    if (editBtn.disabled) return;
+
+    const selectedRow = document.querySelector('.data-table tbody tr.selected');
+    if (!selectedRow) {
+      alert("Please select a row first.");
+      return;
+    }
+
+    const cells = selectedRow.querySelectorAll('td');
+    const editObjectName = document.getElementById('editObjectName');
+    const editObjectClass = document.getElementById('editObjectClass');
+    const editObjectSize = document.getElementById('editObjectSize');
+    
+    if (editObjectName && cells[1]) editObjectName.value = cells[1].innerText;
+    if (editObjectClass && cells[3]) editObjectClass.value = cells[3].innerText;
+    if (editObjectSize && cells[4]) editObjectSize.value = cells[4].innerText;
+
+    if (editObjectModal) editObjectModal.style.display = 'flex';
+
+    // Focus first input for accessibility
+    if (editObjectName) editObjectName.focus();
+  });
+}
+
+// Cancel Edit modal
+if (cancelEditBtn && editObjectModal) {
+  cancelEditBtn.addEventListener("click", () => {
+    editObjectModal.style.display = "none";
+  });
+}
+
+// Save Edit modal form
+if (editForm) {
+  editForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const selectedRow = document.querySelector('.data-table tbody tr.selected');
+    if (!selectedRow) return;
+
+    const cells = selectedRow.querySelectorAll('td');
+    const editObjectName = document.getElementById('editObjectName');
+    const editObjectClass = document.getElementById('editObjectClass');
+    const editObjectSize = document.getElementById('editObjectSize');
+    
+    if (editObjectName && cells[1]) cells[1].innerText = editObjectName.value;
+    if (editObjectClass && cells[3]) cells[3].innerText = editObjectClass.value;
+    if (editObjectSize && cells[4]) cells[4].innerText = editObjectSize.value;
+
+    if (editObjectModal) editObjectModal.style.display = "none";
+  });
+}
+
+// Click outside row and modal clears selection and disables edit button
+document.addEventListener('click', (event) => {
+  const isRowClick = event.target.closest('.data-table tbody tr');
+  const isInsideModal = event.target.closest('.add-box') || event.target.closest('.folder-box');
+
+  if (!isRowClick && !isInsideModal && rows) {
+    rows.forEach(r => r.classList.remove('selected'));
+    if (editBtn) {
+      editBtn.disabled = true;
+      editBtn.style.backgroundColor = '';
+      editBtn.style.borderColor = '';
+    }
+  }
+});
+</script>
+
+</body>
+</html>
