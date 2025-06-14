@@ -175,7 +175,7 @@
   <div class="object-name">
     <strong>Object Name:</strong> <span id="addObjectName"></span>
   </div>
-  <button class="edit-btn" id="editObjectBtn">
+  <button class="edit-btn">
     <i class="fa-solid fa-pen-to-square"></i> Edit Object
   </button>
 </div>
@@ -201,25 +201,27 @@
 
 <!-- Edit Object Form -->
 <div class="bgPop" id="editObjectPop">
-  <div class="add-box">
-    <h1><span class="add">Edit</span> <span class="object">Object</span></h1>
-    <form id="editObjectForm" class="add-form">
-
+  <div class="edit-box">
+    <h1><span class="edit">Edit</span> <span class="object">Object</span></h1>
+    <form id="editObjectForm" class="edit-form">
       <label for="editObjectName">Object Name:</label>
-      <input type="text" id="editObjectName" name="editObjectName" required>
-
+      <input type="text" id="editObjectName" name="editObjectName" placeholder="Enter object name" required autocomplete="off" required>
+      
       <!-- Drop Area for adding more files -->
-      <div id="editDropArea">
+      <div id="dropArea">
         <div class="drop-header">
           <span class="browse-btn">Browse...</span>
-          <span class="or-text">Or drop files here to add more</span>
+          <span class="or-text">Or drop files/folder here</span>
         </div>
         <ul id="editFileList"></ul>
+        <div class="drop-error-message" id="dropErrorMessage">Please select at least one file to upload.</div>
         <input type="file" id="editFileInput" name="files" multiple accept="image/*"/>
       </div>
 
+      <div class="error-message" id="errorMessage"></div>
+
       <div class="button-spacing">
-        <button type="button" class="cancel-btn" id="cancelEditBtn">Cancel</button>
+        <button type="button" class="cancel-btn" id="cancelBtn">Cancel</button>
         <button type="submit" class="upload-btn">Save Changes</button>
       </div>
     </form>

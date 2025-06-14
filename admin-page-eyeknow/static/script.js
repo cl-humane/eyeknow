@@ -17,13 +17,12 @@ const cancelEditBtn = document.getElementById("cancelEditBtn");
 const searchInput = document.querySelector('.search-container input');
 const searchContainer = document.querySelector('.search-container');
 
-const editObjectPop = document.getElementById("editObjectPop");
-const editObjectBtn = document.getElementById("editObjectBtn");
-const editObjectForm = document.getElementById("editObjectForm");
-const editObjectNameInput = document.getElementById("editObjectName");
-const editDropArea = document.getElementById("editDropArea");
-const editFileInput = document.getElementById("editFileInput");
-const editFileList = document.getElementById("editFileList");
+const editObjectPop = document.getElementById('editObjectPop');
+const editObjectForm = document.getElementById('editObjectForm');
+const editObjectNameInput = document.getElementById('editObjectName');
+const editFileInput = document.getElementById('editFileInput');
+const editFileList = document.getElementById('editFileList');
+const editObjectBtn = document.getElementById('editObjectBtn');
 
 if (editBtn) {
     editBtn.style.display = 'flex';
@@ -31,6 +30,9 @@ if (editBtn) {
 }
 
 let droppedFiles = [];
+let currentEditObjectId = null;
+let editDroppedFiles = [];
+
 
 function showError(message) {
 	if (errorMessage) {
@@ -172,6 +174,14 @@ function attachRowEventListeners(row) {
         const cells = row.querySelectorAll('td');
         const objectName = cells[1].innerText;
         const createdBy = cells[4].innerText;
+        
+        // GET THE OBJECT ID FROM THE ROW
+        const objectId = row.dataset.objectId || row.getAttribute('data-object-id');
+        
+        // SET THE GLOBAL WINDOW VARIABLE - THIS WAS MISSING!
+        window.currentObjectId = objectId;
+        
+        console.log('Row clicked - Object ID set to:', objectId); // Debug log
 
         document.getElementById('addObjectName').innerText = objectName;
 
@@ -181,7 +191,6 @@ function attachRowEventListeners(row) {
         }
 
         try {
-            const objectId = row.dataset.objectId || row.getAttribute('data-object-id');
             const response = await fetch(`/object/${objectId}/files`);
             const result = await response.json();
 
@@ -334,274 +343,6 @@ if (cancelBtn && add) {
     });
 }
 // End of Add Object
-
-
-
-// Store files for edit form (separate from add form)
-let editDroppedFiles = [];
-let currentEditingObjectId = null;
-
-// Function to open edit popup for a specific object
-function openEditObject(objectId, objectName) {
-    const editObjectPop = document.getElementById("editObjectPop");
-    const editObjectNameInput = document.getElementById("editObjectName");
-    
-    if (editObjectPop && editObjectNameInput) {
-        // Set the current editing object ID
-        currentEditingObjectId = objectId;
-        
-        // Populate the form with current object name
-        editObjectNameInput.value = objectName;
-        
-        // Clear any previous files
-        editDroppedFiles = [];
-        renderEditFileList();
-        
-        // Show the popup
-        editObjectPop.style.display = "flex";
-        hideMessages();
-    }
-}
-
-// Edit Object Name Input Validation
-if (editObjectNameInput) {
-    editObjectNameInput.addEventListener('invalid', () => {
-        editObjectNameInput.classList.add('error');
-    });
-    
-    editObjectNameInput.addEventListener('input', () => {
-        editObjectNameInput.classList.remove('error');
-    });
-}
-
-// Edit Object Form Submit
-if (editObjectForm) {
-    editObjectForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        
-        const editObjectName = editObjectNameInput.value.trim();
-        
-        hideMessages();
-        setUploadState(true);
-        
-        try {
-            const formData = new FormData();
-            formData.append('objectId', currentEditingObjectId);
-            formData.append('objectName', editObjectName);
-        
-            // Add new files if any
-            editDroppedFiles.forEach((file, index) => {
-                formData.append('files', file);
-            });
-            
-            const response = await fetch('/edit-object', {
-                method: 'POST',
-                body: formData
-            });
-
-            const result = await response.json();
-            
-            if (response.ok && result.success) {
-                if (editObjectPop) editObjectPop.style.display = "none";
-                if (editObjectNameInput) editObjectNameInput.value = '';
-                editDroppedFiles = [];
-                renderEditFileList();
-                hideMessages();
-                
-                await refreshObjectsTable();
-                
-                setTimeout(() => {
-                    showSuccessPopup(`Successfully updated object "${result.object_name}"`);
-                    setTimeout(() => {
-                        closeSuccessPopup();
-                    }, 5000);
-                }, 300);
-                
-            } else {
-                if (response.status === 401) {
-                    showGeneralErrorPopup('Session expired. Please log in again.');
-                    setTimeout(() => {
-                        window.location.href = '/';
-                    }, 2000);
-                } else {
-                    showGeneralErrorPopup(result.error || 'Update failed. Please try again.');
-                }
-            }
-            
-        } catch (error) {
-            console.error('Edit error:', error);
-            if (error.name === 'TypeError' || error.message.includes('Failed to fetch')) {
-                showGeneralErrorPopup('Network error. Please check your connection and try again.');
-            } else {
-                showGeneralErrorPopup('An unexpected error occurred. Please try again.');
-            }
-        } finally {
-            setUploadState(false);
-        }
-    });
-}
-
-// Edit Object Button Click
-if (editObjectBtn && editObjectPop) {
-    editObjectBtn.addEventListener("click", () => {
-        // Get current object data
-        const objectNameSpan = document.getElementById("addObjectName");
-        const currentObjectName = objectNameSpan ? objectNameSpan.textContent : '';
-        
-        // Populate edit form with current data
-        if (editObjectNameInput) editObjectNameInput.value = currentObjectName;
-        
-        // Clear any previous files
-        editDroppedFiles = [];
-        renderEditFileList();
-        
-        editObjectPop.style.display = "flex";
-        hideMessages();
-    });
-}
-
-// Cancel Edit Button
-if (cancelEditBtn && editObjectPop) {
-    cancelEditBtn.addEventListener("click", () => {
-        editObjectPop.style.display = "none";
-        if (editObjectNameInput) editObjectNameInput.value = '';
-        editDroppedFiles = [];
-        renderEditFileList();
-        hideMessages();
-    });
-}
-
-// Edit Form Drag & Drop
-if (editDropArea) {
-    editDropArea.addEventListener("dragover", (e) => {
-        e.preventDefault();
-        editDropArea.style.borderColor = "#fd1717";
-    });
-
-    editDropArea.addEventListener("dragleave", () => {
-        editDropArea.style.borderColor = "#ccc";
-    });
-
-    editDropArea.addEventListener("drop", async (e) => {
-        e.preventDefault();
-        editDropArea.style.borderColor = "#ccc";
-
-        const items = e.dataTransfer.items;
-
-        for (const item of items) {
-            const entry = item.webkitGetAsEntry();
-            if (entry) await traverseEditFileTree(entry);
-        }
-
-        renderEditFileList();
-    });
-
-    const editBrowseBtn = editDropArea.querySelector('.browse-btn');
-    if (editBrowseBtn) {
-        editBrowseBtn.addEventListener("click", (e) => {
-            e.stopPropagation();
-            if (editFileInput) editFileInput.click();
-        });
-    }
-
-    const editDropHeader = editDropArea.querySelector('.drop-header');
-    if (editDropHeader && !editBrowseBtn) {
-        editDropHeader.addEventListener("click", (e) => {
-            if (
-                e.target === editDropHeader ||
-                e.target.classList.contains('browse-btn') ||
-                e.target.classList.contains('or-text')
-            ) {
-                if (editFileInput) editFileInput.click();
-            }
-        });
-    }
-}
-
-// Edit File Input Change
-if (editFileInput) {
-    editFileInput.addEventListener("change", () => {
-        const files = Array.from(editFileInput.files);
-
-        for (const file of files) {
-            if (file.type.startsWith("image/")) {
-                const exists = editDroppedFiles.some(existingFile =>
-                    existingFile.name === file.name && existingFile.size === file.size
-                );
-                if (!exists) {
-                    editDroppedFiles.push(file);
-                }
-            }
-        }
-
-        renderEditFileList();
-
-        // Reset file input
-        editFileInput.value = '';
-    });
-}
-
-// Traverse file tree for edit form
-async function traverseEditFileTree(entry) {
-    if (entry.isFile) {
-        return new Promise(resolve => {
-            entry.file(file => {
-                if (file.type.startsWith("image/")) {
-                    const exists = editDroppedFiles.some(existingFile =>
-                        existingFile.name === file.name && existingFile.size === file.size
-                    );
-                    if (!exists) {
-                        editDroppedFiles.push(file);
-                    }
-                }
-                resolve();
-            });
-        });
-    } else if (entry.isDirectory) {
-        const reader = entry.createReader();
-        return new Promise(resolve => {
-            reader.readEntries(async entries => {
-                for (const subEntry of entries) {
-                    await traverseEditFileTree(subEntry);
-                }
-                resolve();
-            });
-        });
-    }
-}
-
-// Render edit file list
-function renderEditFileList() {
-    if (!editFileList) return;
-
-    const editDropArea = document.getElementById('editDropArea');
-    if (editDropArea && editDroppedFiles.length > 0) {
-        editDropArea.classList.remove('error');
-    }
-
-    editFileList.innerHTML = '';
-
-    editDroppedFiles.forEach((file, index) => {
-        const li = document.createElement('li');
-        li.innerHTML = `
-            <div class="file-info">
-                <div class="file-name-row">
-                    <span class="file-name">${file.name}</span>
-                    <button type="button" class="remove-btn" onclick="removeEditFile(${index})">&times;</button>
-                </div>
-                <span class="file-size">${formatFileSize(file.size)}</span>
-            </div>
-        `;
-        editFileList.appendChild(li);
-    });
-}
-
-// Remove edit file function
-function removeEditFile(index) {
-    event.stopPropagation();
-    editDroppedFiles.splice(index, 1);
-    renderEditFileList();
-}
 
 
 // Drag & Drop
@@ -1054,7 +795,8 @@ function displaySearchResults(results, searchTerm) {
             `;
             
             resultItem.addEventListener('click', () => {
-                openObjectDetails(obj);
+                // FIXED: Call the correct function with the object parameter
+                openObjectDetailsFromSearch(obj);
                 hideSearchDropdown();
                 searchInput.value = obj.objectName;
             });
@@ -1063,6 +805,7 @@ function displaySearchResults(results, searchTerm) {
     }
     searchDropdown.style.display = 'block';
 }
+
 
 function highlightSearchTerm(text, searchTerm) {
     const regex = new RegExp(`(${escapeRegExp(searchTerm)})`, 'gi');
@@ -1110,7 +853,7 @@ function hideSearchDropdown() {
     searchDropdown.style.display = 'none';
 }
 
-async function openObjectDetails(obj) {
+async function openObjectDetailsFromSearch(obj) {
     const allRows = document.querySelectorAll('.data-table tbody tr');
     allRows.forEach(r => r.classList.remove('selected'));
     if (obj.element) {
@@ -1121,11 +864,17 @@ async function openObjectDetails(obj) {
             editBtn.style.borderColor = '#747272';
         }
     }
+    
+    // SET THE GLOBAL WINDOW VARIABLE
+    window.currentObjectId = obj.objectId;
+    console.log('Search opened object - Object ID set to:', obj.objectId);
+    
     document.getElementById('addObjectName').innerText = obj.objectName;
     const detailTable = document.querySelector('#filesPop .file-table table tbody');
     if (detailTable) {
         detailTable.innerHTML = '';
     }
+    
     try {
         const response = await fetch(`/object/${obj.objectId}/files`);
         const result = await response.json();
@@ -1157,6 +906,8 @@ async function openObjectDetails(obj) {
         `;
         if (detailTable) detailTable.appendChild(tr);
     }
+    
+    // SHOW THE POPUP
     document.getElementById('filesPop').style.display = 'flex';
 }
 
@@ -1297,8 +1048,7 @@ if (logoutTrigger && logoutModal && cancelLogout) {
 // End of Logout
 
 
-
-const closeModalBtn = document.getElementById('closeModalBtn');
+const closeModalBtn = document.getElementById('');
 if (closeModalBtn) {
 	closeModalBtn.addEventListener('click', () => {
 		const rowInfoModal = document.getElementById('rowInfoModal');
@@ -1323,59 +1073,99 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-if (editBtn) {
-    editBtn.addEventListener("click", () => {
-        const objectNameSpan = document.getElementById("addObjectName");
-        const editObjectNameInput = document.getElementById("editObjectName");
 
-        if (objectNameSpan && editObjectNameInput) {
-            editObjectNameInput.value = objectNameSpan.innerText.trim();
-        }
 
-        if (editObjectModal) {
-            editObjectModal.style.display = "flex"; // Show the modal
-        }
-    });
+// Edit Object Form
+function openObjectDetails(objectId, objectName) {
+    window.currentObjectId = objectId;
+    document.getElementById('addObjectName').textContent = objectName;
+    document.getElementById('filesPop').style.display = 'flex';
 }
 
+document.addEventListener('click', function (event) {
+    const editBtn = event.target.closest('.edit-btn');
+    if (!editBtn) return;
 
+    const currentObjectName = document.getElementById('addObjectName')?.textContent?.trim() || '';
+    const currentEditObjectId = window.currentObjectId || null;
 
-// Handle Cancel button click
-if (cancelEditBtn) {
-    cancelEditBtn.addEventListener("click", () => {
-        editObjectModal.style.display = "none"; // hide the modal
-    });
-}
+    console.log('Current Object ID:', currentEditObjectId);
+    console.log('Current Object Name:', currentObjectName);
 
-if (editForm) {
-    editForm.addEventListener("submit", (e) => {
-        e.preventDefault();
-
-        const editObjectName = document.getElementById("editObjectName");
-        const objectNameSpan = document.getElementById("addObjectName");
-
-        if (editObjectName && objectNameSpan) {
-            objectNameSpan.innerText = editObjectName.value;
-        }
-
-        if (editObjectModal) {
-            editObjectModal.style.display = "none"; // Hide the modal
-        }
-    });
-}
-
-
-document.addEventListener('click', (event) => {
-	const isRowClick = event.target.closest('.data-table tbody tr');
-	const isInsideModal = event.target.closest('.add-box') || event.target.closest('.file-container');
-
-	if (!isRowClick && !isInsideModal) {
-        const allRows = document.querySelectorAll('.data-table tbody tr');
-		allRows.forEach(r => r.classList.remove('selected'));
-		if (editBtn) {
-			editBtn.disabled = true;
-			editBtn.style.backgroundColor = '';
-			editBtn.style.borderColor = '';
-		}
-	}
+    if (!currentEditObjectId || !currentObjectName) {
+        alert('Error: Missing object name or ID.');
+        console.error('Missing data:', { objectId: currentEditObjectId, objectName: currentObjectName });
+        return;
+    }
+    document.getElementById('editObjectName').value = currentObjectName;
+    document.getElementById('filesPop').style.display = 'none';
+    const popup = document.getElementById('editObjectPop');
+    popup.style.display = 'flex';
+    popup.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+    popup.style.zIndex = '9999';
 });
+
+document.getElementById('editObjectForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const objectId = window.currentObjectId;
+    const objectName = document.getElementById('editObjectName').value.trim();
+    
+    if (!objectId) {
+        alert('Error: No object selected for editing.');
+        return;
+    }
+    
+    if (!objectName) {
+        alert('Error: Object name is required.');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('objectId', objectId);
+    formData.append('editObjectName', objectName);
+    const fileInput = document.getElementById('editFileInput');
+    if (fileInput.files.length > 0) {
+        for (let i = 0; i < fileInput.files.length; i++) {
+            formData.append('files', fileInput.files[i]);
+        }
+    }
+    fetch('/edit_object', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            closeEditPopup();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while updating the object.');
+    });
+});
+
+function closeEditPopup() {
+    const editObjectPop = document.getElementById('editObjectPop');
+    const editObjectNameInput = document.getElementById('editObjectName');
+    
+    if (editObjectPop) {
+        editObjectPop.style.display = 'none';
+        console.log('Edit popup closed');
+    }
+    if (editObjectNameInput) {
+        editObjectNameInput.value = '';
+    }
+    const fileInput = document.getElementById('editFileInput');
+    if (fileInput) {
+        fileInput.value = '';
+    }
+    const editFileList = document.getElementById('editFileList');
+    if (editFileList) {
+        editFileList.innerHTML = '';
+    }
+    console.log('Edit popup closed');
+}
