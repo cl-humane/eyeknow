@@ -199,8 +199,8 @@
 </div>
 
 
-<!-- Edit Object add -->
-<div class="bgPop" id="editObjectadd" style="display: none;">
+<!-- Edit Object Form -->
+<div class="bgPop" id="editObjectPop">
   <div class="add-box">
     <h1><span class="add">Edit</span> <span class="object">Object</span></h1>
     <form id="editObjectForm" class="add-form">
@@ -208,21 +208,19 @@
       <label for="editObjectName">Object Name:</label>
       <input type="text" id="editObjectName" name="editObjectName" required>
 
-      <!-- Drop Area (like Add add, but you can remove or keep as needed) -->
-      <div id="dropArea">
+      <!-- Drop Area for adding more files -->
+      <div id="editDropArea">
         <div class="drop-header">
           <span class="browse-btn">Browse...</span>
-          <span class="or-text">Or drop files here</span>
+          <span class="or-text">Or drop files here to add more</span>
         </div>
-
-        <ul id="fileList">
-        
-        <input type="file" id="fileInput" name="files" multiple accept="image/*" webkitdirectory mozdirectory>
+        <ul id="editFileList"></ul>
+        <input type="file" id="editFileInput" name="files" multiple accept="image/*"/>
       </div>
 
       <div class="button-spacing">
         <button type="button" class="cancel-btn" id="cancelEditBtn">Cancel</button>
-        <button type="submit" class="upload-btn">Confirm</button>
+        <button type="submit" class="upload-btn">Save Changes</button>
       </div>
     </form>
   </div>

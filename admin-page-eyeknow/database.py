@@ -313,6 +313,127 @@ def upload_files():
             'error': f'Upload failed: {str(e)}'
         }), 500
 
+@app.route('/edit-object', methods=['POST'])
+def edit_object():
+    if 'username' not in session:
+        return jsonify({'success': False, 'error': 'Authentication required'}), 401
+    
+    try:
+        object_id = request.form.get('objectId')
+        object_name = request.form.get('objectName')
+        created_by = session.get('admin_id', 1)
+        
+        if not object_id or not object_name:
+            return jsonify({'success': False, 'error': 'Object ID and name are required'}), 400
+        
+        files = request.files.getlist('files')
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        try:
+            conn.execute('BEGIN')
+            
+            # Check if object exists
+            cursor.execute('SELECT object_id, object_name, size FROM Object WHERE object_id = ?', (object_id,))
+            existing_object = cursor.fetchone()
+            
+            if not existing_object:
+                conn.close()
+                return jsonify({'success': False, 'error': 'Object not found'}), 404
+            
+            current_time = datetime.now().isoformat()
+            current_size = existing_object['size'] or 0
+            
+            # Update object name and timestamp
+            cursor.execute('''
+                UPDATE Object 
+                SET object_name = ?, date_updated = ?
+                WHERE object_id = ?
+            ''', (object_name, current_time, object_id))
+            
+            # Add new files if any
+            total_new_size = 0
+            saved_files = []
+            
+            if files and len(files) > 0:
+                for file in files:
+                    if file and file.filename != '':
+                        if not allowed_file(file.filename):
+                            return jsonify({
+                                'success': False, 
+                                'error': f'File type not allowed: {file.filename}'
+                            }), 400
+                        
+                        file_size = get_file_size(file)
+                        if file_size > MAX_FILE_SIZE:
+                            return jsonify({
+                                'success': False, 
+                                'error': f'File too large: {file.filename}'
+                            }), 400
+                        
+                        total_new_size += file_size
+                        
+                        # Save file
+                        original_filename = secure_filename(file.filename)
+                        file_extension = original_filename.rsplit('.', 1)[1].lower() if '.' in original_filename else ''
+                        unique_filename = f"{uuid.uuid4().hex}.{file_extension}" if file_extension else str(uuid.uuid4().hex)
+                        
+                        object_dir = os.path.join(UPLOAD_FOLDER, f"object_{object_id}")
+                        os.makedirs(object_dir, exist_ok=True)
+                        
+                        file_path = os.path.join(object_dir, unique_filename)
+                        file.save(file_path)
+                        
+                        # Insert file record
+                        cursor.execute('''
+                            INSERT INTO File (object_id, file_name, date_created, created_by, size)
+                            VALUES (?, ?, ?, ?, ?)
+                        ''', (object_id, original_filename, current_time, created_by, file_size))
+                        
+                        saved_files.append({
+                            'file_id': cursor.lastrowid,
+                            'original_name': original_filename,
+                            'saved_as': unique_filename,
+                            'size': file_size
+                        })
+            
+            # Update object size if new files were added
+            if total_new_size > 0:
+                new_total_size = current_size + total_new_size
+                cursor.execute('''
+                    UPDATE Object 
+                    SET size = ?
+                    WHERE object_id = ?
+                ''', (new_total_size, object_id))
+            
+            # Update folder timestamp
+            cursor.execute('''
+                UPDATE Folder SET last_updated = ? WHERE folder_id = 1
+            ''', (datetime.now().strftime("%Y-%m-%d %H:%M:%S"),))
+            
+            conn.commit()
+            
+            return jsonify({
+                'success': True,
+                'object_id': object_id,
+                'object_name': object_name,
+                'files_added': len(saved_files),
+                'files': saved_files
+            })
+            
+        except Exception as e:
+            conn.rollback()
+            raise e
+        finally:
+            conn.close()
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Edit failed: {str(e)}'
+        }), 500
+
 @app.route('/folder-info')
 def get_folder_info():
     if 'username' not in session:

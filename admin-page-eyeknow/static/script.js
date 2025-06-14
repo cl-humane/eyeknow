@@ -17,6 +17,14 @@ const cancelEditBtn = document.getElementById("cancelEditBtn");
 const searchInput = document.querySelector('.search-container input');
 const searchContainer = document.querySelector('.search-container');
 
+const editObjectPop = document.getElementById("editObjectPop");
+const editObjectBtn = document.getElementById("editObjectBtn");
+const editObjectForm = document.getElementById("editObjectForm");
+const editObjectNameInput = document.getElementById("editObjectName");
+const editDropArea = document.getElementById("editDropArea");
+const editFileInput = document.getElementById("editFileInput");
+const editFileList = document.getElementById("editFileList");
+
 if (editBtn) {
     editBtn.style.display = 'flex';
     editBtn.disabled = true;
@@ -327,6 +335,275 @@ if (cancelBtn && add) {
 }
 // End of Add Object
 
+
+
+// Store files for edit form (separate from add form)
+let editDroppedFiles = [];
+let currentEditingObjectId = null;
+
+// Function to open edit popup for a specific object
+function openEditObject(objectId, objectName) {
+    const editObjectPop = document.getElementById("editObjectPop");
+    const editObjectNameInput = document.getElementById("editObjectName");
+    
+    if (editObjectPop && editObjectNameInput) {
+        // Set the current editing object ID
+        currentEditingObjectId = objectId;
+        
+        // Populate the form with current object name
+        editObjectNameInput.value = objectName;
+        
+        // Clear any previous files
+        editDroppedFiles = [];
+        renderEditFileList();
+        
+        // Show the popup
+        editObjectPop.style.display = "flex";
+        hideMessages();
+    }
+}
+
+// Edit Object Name Input Validation
+if (editObjectNameInput) {
+    editObjectNameInput.addEventListener('invalid', () => {
+        editObjectNameInput.classList.add('error');
+    });
+    
+    editObjectNameInput.addEventListener('input', () => {
+        editObjectNameInput.classList.remove('error');
+    });
+}
+
+// Edit Object Form Submit
+if (editObjectForm) {
+    editObjectForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        
+        const editObjectName = editObjectNameInput.value.trim();
+        
+        hideMessages();
+        setUploadState(true);
+        
+        try {
+            const formData = new FormData();
+            formData.append('objectId', currentEditingObjectId);
+            formData.append('objectName', editObjectName);
+        
+            // Add new files if any
+            editDroppedFiles.forEach((file, index) => {
+                formData.append('files', file);
+            });
+            
+            const response = await fetch('/edit-object', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+            
+            if (response.ok && result.success) {
+                if (editObjectPop) editObjectPop.style.display = "none";
+                if (editObjectNameInput) editObjectNameInput.value = '';
+                editDroppedFiles = [];
+                renderEditFileList();
+                hideMessages();
+                
+                await refreshObjectsTable();
+                
+                setTimeout(() => {
+                    showSuccessPopup(`Successfully updated object "${result.object_name}"`);
+                    setTimeout(() => {
+                        closeSuccessPopup();
+                    }, 5000);
+                }, 300);
+                
+            } else {
+                if (response.status === 401) {
+                    showGeneralErrorPopup('Session expired. Please log in again.');
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 2000);
+                } else {
+                    showGeneralErrorPopup(result.error || 'Update failed. Please try again.');
+                }
+            }
+            
+        } catch (error) {
+            console.error('Edit error:', error);
+            if (error.name === 'TypeError' || error.message.includes('Failed to fetch')) {
+                showGeneralErrorPopup('Network error. Please check your connection and try again.');
+            } else {
+                showGeneralErrorPopup('An unexpected error occurred. Please try again.');
+            }
+        } finally {
+            setUploadState(false);
+        }
+    });
+}
+
+// Edit Object Button Click
+if (editObjectBtn && editObjectPop) {
+    editObjectBtn.addEventListener("click", () => {
+        // Get current object data
+        const objectNameSpan = document.getElementById("addObjectName");
+        const currentObjectName = objectNameSpan ? objectNameSpan.textContent : '';
+        
+        // Populate edit form with current data
+        if (editObjectNameInput) editObjectNameInput.value = currentObjectName;
+        
+        // Clear any previous files
+        editDroppedFiles = [];
+        renderEditFileList();
+        
+        editObjectPop.style.display = "flex";
+        hideMessages();
+    });
+}
+
+// Cancel Edit Button
+if (cancelEditBtn && editObjectPop) {
+    cancelEditBtn.addEventListener("click", () => {
+        editObjectPop.style.display = "none";
+        if (editObjectNameInput) editObjectNameInput.value = '';
+        editDroppedFiles = [];
+        renderEditFileList();
+        hideMessages();
+    });
+}
+
+// Edit Form Drag & Drop
+if (editDropArea) {
+    editDropArea.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        editDropArea.style.borderColor = "#fd1717";
+    });
+
+    editDropArea.addEventListener("dragleave", () => {
+        editDropArea.style.borderColor = "#ccc";
+    });
+
+    editDropArea.addEventListener("drop", async (e) => {
+        e.preventDefault();
+        editDropArea.style.borderColor = "#ccc";
+
+        const items = e.dataTransfer.items;
+
+        for (const item of items) {
+            const entry = item.webkitGetAsEntry();
+            if (entry) await traverseEditFileTree(entry);
+        }
+
+        renderEditFileList();
+    });
+
+    const editBrowseBtn = editDropArea.querySelector('.browse-btn');
+    if (editBrowseBtn) {
+        editBrowseBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (editFileInput) editFileInput.click();
+        });
+    }
+
+    const editDropHeader = editDropArea.querySelector('.drop-header');
+    if (editDropHeader && !editBrowseBtn) {
+        editDropHeader.addEventListener("click", (e) => {
+            if (
+                e.target === editDropHeader ||
+                e.target.classList.contains('browse-btn') ||
+                e.target.classList.contains('or-text')
+            ) {
+                if (editFileInput) editFileInput.click();
+            }
+        });
+    }
+}
+
+// Edit File Input Change
+if (editFileInput) {
+    editFileInput.addEventListener("change", () => {
+        const files = Array.from(editFileInput.files);
+
+        for (const file of files) {
+            if (file.type.startsWith("image/")) {
+                const exists = editDroppedFiles.some(existingFile =>
+                    existingFile.name === file.name && existingFile.size === file.size
+                );
+                if (!exists) {
+                    editDroppedFiles.push(file);
+                }
+            }
+        }
+
+        renderEditFileList();
+
+        // Reset file input
+        editFileInput.value = '';
+    });
+}
+
+// Traverse file tree for edit form
+async function traverseEditFileTree(entry) {
+    if (entry.isFile) {
+        return new Promise(resolve => {
+            entry.file(file => {
+                if (file.type.startsWith("image/")) {
+                    const exists = editDroppedFiles.some(existingFile =>
+                        existingFile.name === file.name && existingFile.size === file.size
+                    );
+                    if (!exists) {
+                        editDroppedFiles.push(file);
+                    }
+                }
+                resolve();
+            });
+        });
+    } else if (entry.isDirectory) {
+        const reader = entry.createReader();
+        return new Promise(resolve => {
+            reader.readEntries(async entries => {
+                for (const subEntry of entries) {
+                    await traverseEditFileTree(subEntry);
+                }
+                resolve();
+            });
+        });
+    }
+}
+
+// Render edit file list
+function renderEditFileList() {
+    if (!editFileList) return;
+
+    const editDropArea = document.getElementById('editDropArea');
+    if (editDropArea && editDroppedFiles.length > 0) {
+        editDropArea.classList.remove('error');
+    }
+
+    editFileList.innerHTML = '';
+
+    editDroppedFiles.forEach((file, index) => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+            <div class="file-info">
+                <div class="file-name-row">
+                    <span class="file-name">${file.name}</span>
+                    <button type="button" class="remove-btn" onclick="removeEditFile(${index})">&times;</button>
+                </div>
+                <span class="file-size">${formatFileSize(file.size)}</span>
+            </div>
+        `;
+        editFileList.appendChild(li);
+    });
+}
+
+// Remove edit file function
+function removeEditFile(index) {
+    event.stopPropagation();
+    editDroppedFiles.splice(index, 1);
+    renderEditFileList();
+}
+
+
 // Drag & Drop
 if (dropArea) {
 	dropArea.addEventListener("dragover", (e) => {
@@ -414,57 +691,58 @@ if (fileInput) {
 }
 
 // Traverse file tree for folder drops
+// Traverse file tree for folder drops (existing)
 async function traverseFileTree(entry) {
-	if (entry.isFile) {
-		return new Promise(resolve => {
-			entry.file(file => {
-				if (file.type.startsWith("image/")) {
-					const exists = droppedFiles.some(existingFile =>
-						existingFile.name === file.name && existingFile.size === file.size
-					);
-					if (!exists) {
-						droppedFiles.push(file);
-					}
-				}
-				resolve();
-			});
-		});
-	} else if (entry.isDirectory) {
-		const reader = entry.createReader();
-		return new Promise(resolve => {
-			reader.readEntries(async entries => {
-				for (const subEntry of entries) {
-					await traverseFileTree(subEntry);
-				}
-				resolve();
-			});
-		});
-	}
+    if (entry.isFile) {
+        return new Promise(resolve => {
+            entry.file(file => {
+                if (file.type.startsWith("image/")) {
+                    const exists = droppedFiles.some(existingFile =>
+                        existingFile.name === file.name && existingFile.size === file.size
+                    );
+                    if (!exists) {
+                        droppedFiles.push(file);
+                    }
+                }
+                resolve();
+            });
+        });
+    } else if (entry.isDirectory) {
+        const reader = entry.createReader();
+        return new Promise(resolve => {
+            reader.readEntries(async entries => {
+                for (const subEntry of entries) {
+                    await traverseFileTree(subEntry);
+                }
+                resolve();
+            });
+        });
+    }
 }
 
 function renderFileList() {
-	if (!fileList) return;
+    if (!fileList) return;
 
     const dropArea = document.getElementById('dropArea');
     if (dropArea && droppedFiles.length > 0) {
         dropArea.classList.remove('error');
     }
 
-	fileList.innerHTML = '';
+    fileList.innerHTML = '';
 
-	droppedFiles.forEach((file, index) => {
-		const li = document.createElement('li');
-		li.innerHTML = `
-			<div class="file-info">
-				<div class="file-name-row">
-					<span class="file-name">${file.name}</span>
-					<button type="button" class="remove-btn" onclick="removeFile(${index})">&times;</button>
-				</div>
-				<span class="file-size">${formatFileSize(file.size)}</span>
-			</div>
-		`;
-		fileList.appendChild(li);
-	});
+    droppedFiles.forEach((file, index) => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+            <div class="file-info">
+                <div class="file-name-row">
+                    <span class="file-name">${file.name}</span>
+                    <button type="button" class="remove-btn" onclick="removeFile(${index})">&times;</button>
+                </div>
+                <span class="file-size">${formatFileSize(file.size)}</span>
+            </div>
+        `;
+        fileList.appendChild(li);
+    });
 }
 
 // Remove file function
@@ -500,6 +778,23 @@ function validateForm() {
     }
     if (droppedFiles.length === 0) {
         if (dropArea) dropArea.classList.add('error');
+        isValid = false;
+    }
+    
+    return isValid;
+}
+
+// Validate edit form
+function validateEditForm() {
+    let isValid = true;
+
+    const editObjectNameInput = document.getElementById('editObjectName');
+    
+    if (editObjectNameInput) editObjectNameInput.classList.remove('error');
+
+    const objectName = editObjectNameInput ? editObjectNameInput.value.trim() : '';
+    if (!objectName) {
+        if (editObjectNameInput) editObjectNameInput.classList.add('error');
         isValid = false;
     }
     

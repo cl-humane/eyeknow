@@ -156,16 +156,6 @@ input[type="password"],
   border-color: red;
 }
 
-.edit-btn {
-  background-color: #363636;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 10px;
-  font-weight: bold;
-  border: 2px solid;
-  border-radius: 1.5rem;
-}
-
 .download-btn,
 .sort-btn {
   background-color: #1A1A1A;
@@ -869,13 +859,12 @@ input[type="password"],
 }
 
 .object-name {
-  display: flex;
   gap: 5px;
   align-items: center;
 }
 
 .edit-btn {
-  background: none;
+  background-color: #2c2c2c;
   border: none;
   color: white;
   font-size: 13px;
@@ -884,6 +873,9 @@ input[type="password"],
   align-items: center;
   gap: 8px;
   font-weight: bold;
+  padding: 4px 10px;
+  font-weight: bold;
+  border-radius: 4px;
 }
 
 .file-container {
