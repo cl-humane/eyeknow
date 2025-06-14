@@ -11,7 +11,7 @@ const successMessage = document.getElementById("successMessage");
 
 const editBtn = document.getElementById("editObjectBtn");
 const rows = document.querySelectorAll('.data-table tbody tr');
-const editObjectModal = document.getElementById("editObjectModal");
+const editObjectModal = document.getElementById("editObjectadd");
 const editForm = document.getElementById("editObjectForm");
 const cancelEditBtn = document.getElementById("cancelEditBtn");
 const searchInput = document.querySelector('.search-container input');
@@ -146,7 +146,9 @@ function updateObjectsTable(objects) {
         attachRowEventListeners(row);
         tableBody.appendChild(row);
     });
-    if (editBtn) {
+
+    // Disable and reset editBtn
+    if (typeof editBtn !== 'undefined' && editBtn) {
         editBtn.disabled = true;
         editBtn.style.backgroundColor = '';
         editBtn.style.borderColor = '';
@@ -154,24 +156,11 @@ function updateObjectsTable(objects) {
 }
 
 function attachRowEventListeners(row) {
-    let clickTimer = null;
+    row.addEventListener('click', async () => {
+        const allRows = document.querySelectorAll('.data-table tbody tr');
+        allRows.forEach(r => r.classList.remove('selected'));
+        row.classList.add('selected');
 
-    row.addEventListener('click', () => {
-        clearTimeout(clickTimer);
-        clickTimer = setTimeout(() => {
-            const allRows = document.querySelectorAll('.data-table tbody tr');
-            allRows.forEach(r => r.classList.remove('selected'));
-            row.classList.add('selected');
-            if (editBtn) {
-                editBtn.disabled = false;
-                editBtn.style.backgroundColor = '#747272';
-                editBtn.style.borderColor = '#747272';
-            }
-        }, 250);
-    });
-
-    row.addEventListener('dblclick', async () => {
-        clearTimeout(clickTimer);
         const cells = row.querySelectorAll('td');
         const objectName = cells[1].innerText;
         const createdBy = cells[4].innerText;
@@ -215,6 +204,7 @@ function attachRowEventListeners(row) {
             `;
             if (detailTable) detailTable.appendChild(tr);
         }
+
         document.getElementById('filesPop').style.display = 'flex';
     });
 }
@@ -1039,53 +1029,46 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 if (editBtn) {
-	editBtn.addEventListener("click", () => {
-		if (editBtn.disabled) return;
+    editBtn.addEventListener("click", () => {
+        const objectNameSpan = document.getElementById("addObjectName");
+        const editObjectNameInput = document.getElementById("editObjectName");
 
-		const selectedRow = document.querySelector('.data-table tbody tr.selected');
-		if (!selectedRow) {
-			alert("Please select a row first.");
-			return;
-		}
+        if (objectNameSpan && editObjectNameInput) {
+            editObjectNameInput.value = objectNameSpan.innerText.trim();
+        }
 
-		const cells = selectedRow.querySelectorAll('td');
-		const editObjectName = document.getElementById('editObjectName');
-		const editObjectClass = document.getElementById('editObjectClass');
-		const editObjectSize = document.getElementById('editObjectSize');
-
-		if (editObjectName && cells[1]) editObjectName.value = cells[1].innerText;
-		if (editObjectClass && cells[3]) editObjectClass.value = cells[3].innerText;
-		if (editObjectSize && cells[4]) editObjectSize.value = cells[4].innerText;
-
-		if (editObjectModal) editObjectModal.style.display = 'flex';
-		if (editObjectName) editObjectName.focus();
-	});
+        if (editObjectModal) {
+            editObjectModal.style.display = "flex"; // Show the modal
+        }
+    });
 }
 
-if (cancelEditBtn && editObjectModal) {
-	cancelEditBtn.addEventListener("click", () => {
-		editObjectModal.style.display = "none";
-	});
+
+
+// Handle Cancel button click
+if (cancelEditBtn) {
+    cancelEditBtn.addEventListener("click", () => {
+        editObjectModal.style.display = "none"; // hide the modal
+    });
 }
 
 if (editForm) {
-	editForm.addEventListener("submit", (e) => {
-		e.preventDefault();
-		const selectedRow = document.querySelector('.data-table tbody tr.selected');
-		if (!selectedRow) return;
+    editForm.addEventListener("submit", (e) => {
+        e.preventDefault();
 
-		const cells = selectedRow.querySelectorAll('td');
-		const editObjectName = document.getElementById('editObjectName');
-		const editObjectClass = document.getElementById('editObjectClass');
-		const editObjectSize = document.getElementById('editObjectSize');
+        const editObjectName = document.getElementById("editObjectName");
+        const objectNameSpan = document.getElementById("addObjectName");
 
-		if (editObjectName && cells[1]) cells[1].innerText = editObjectName.value;
-		if (editObjectClass && cells[3]) cells[3].innerText = editObjectClass.value;
-		if (editObjectSize && cells[4]) cells[4].innerText = editObjectSize.value;
+        if (editObjectName && objectNameSpan) {
+            objectNameSpan.innerText = editObjectName.value;
+        }
 
-		if (editObjectModal) editObjectModal.style.display = "none";
-	});
+        if (editObjectModal) {
+            editObjectModal.style.display = "none"; // Hide the modal
+        }
+    });
 }
+
 
 document.addEventListener('click', (event) => {
 	const isRowClick = event.target.closest('.data-table tbody tr');

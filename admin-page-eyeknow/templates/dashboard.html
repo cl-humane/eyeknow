@@ -20,10 +20,6 @@
         <i class="fa-solid fa-plus white-icon"></i> 
         Add Object
       </div>
-      <div class="btn edit-btn" id="editObjectBtn" disabled style="display: none;">
-        <i class="fa-solid fa-pen-to-square"></i>
-        Edit Object
-      </div>
     </div>
     
     <div class="right-buttons">
@@ -63,7 +59,7 @@
 </div>
 
 
-<!-- Add Object Modal -->
+<!-- Add Object Form -->
 <div class="bgPop" id="add">
   <div class="add-box">
     <h1><span class="add">Add</span> <span class="object">Object</span></h1>
@@ -140,8 +136,6 @@
 </div>
 
 
-
-
 <!-- Dashboard Object Lists -->
 <div class="data-table">
   <table>
@@ -177,7 +171,14 @@
       <button class="file-close-btn" id="closeaddBtn">&times;</button>
     </div>
     <h2><span class="object">Object</span> <span class="details">Details</span></h2>
-    <p><strong>Object Name:</strong> <span id="addObjectName"></span></p>
+    <div class="object-header">
+  <div class="object-name">
+    <strong>Object Name:</strong> <span id="addObjectName"></span>
+  </div>
+  <button class="edit-btn" id="editObjectBtn">
+    <i class="fa-solid fa-pen-to-square"></i> Edit Object
+  </button>
+</div>
     <div class="file-table">
       <table class="file-list">
         <thead>
@@ -198,19 +199,6 @@
 </div>
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 <!-- Edit Object add -->
 <div class="bgPop" id="editObjectadd" style="display: none;">
   <div class="add-box">
@@ -218,7 +206,7 @@
     <form id="editObjectForm" class="add-form">
 
       <label for="editObjectName">Object Name:</label>
-      <input type="text" id="editObjectName" name="editObjectName" required readonly>
+      <input type="text" id="editObjectName" name="editObjectName" required>
 
       <!-- Drop Area (like Add add, but you can remove or keep as needed) -->
       <div id="dropArea">
@@ -228,11 +216,9 @@
         </div>
 
         <ul id="fileList">
-          
-
+        
         <input type="file" id="fileInput" name="files" multiple accept="image/*" webkitdirectory mozdirectory>
       </div>
-
 
       <div class="button-spacing">
         <button type="button" class="cancel-btn" id="cancelEditBtn">Cancel</button>
@@ -241,8 +227,6 @@
     </form>
   </div>
 </div>
-
-
 
 
 <!-- Logout Confirmation -->
